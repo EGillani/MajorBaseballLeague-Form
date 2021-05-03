@@ -1,0 +1,348 @@
+<html>
+	<head>
+		<title>Project 1 Eraj Gillani</title>
+        <style type="text/css">
+            body
+            {
+                background-image: url("images/baseballpic.jpg");
+                background-position:left; 
+                background-size: cover; 
+                color: white; 
+                font-family:sans-serif;
+            }
+            #outerWrap
+            {
+                width:500px;
+                padding: 5px 0px 0px 20px;
+            }
+            #title
+            {
+                 opacity: 0.8;
+            }
+            #dateWrap
+            {
+                float:left;  
+                width: 40%;
+                border-bottom: 1px; 
+                padding: 10px 0px 0px 0px; 
+                margin-bottom: 20px;
+            }
+            #dateTitles
+            {  opacity: 0.6;
+                float: left;
+            }
+             .DropDown
+            {
+                display:inline-block;
+                width: 40%;
+            }
+            
+            #retrieveWrap
+            {
+                float:left;  
+                position:relative;
+                padding: 5px 0px 0px 0px;
+                opacity: 0.6;
+            }
+            #resultsTitle
+            {   opacity: 0.8;             
+                clear:both; 
+            }
+            #resultsWrap
+            {   opacity: 0.6;
+                clear:left;
+                width: 100%;
+
+            }
+            #resultText
+            {
+                position: absolute;
+                left:45px; 
+
+            }
+            #resultTextboxes
+            {
+                position: relative;
+                left: 10px; 
+            }
+            .results
+            {
+                width:65%;
+
+            }
+             ul
+            {
+                padding: 0px 0px 0px 0px; 
+                margin: 0px 0px 0px 0px;
+                list-style: none; 
+                padding-right:10px;
+                
+            }
+             li
+            {
+                line-height: 2; 
+                text-align: right;
+            }
+            p
+            {
+                display: inline; 
+                padding-right: 30px; 
+            }
+        
+			.BtnButton 
+            {
+				font-family: sans-serif;
+				font-size: 8pt bold;;
+				color: black;
+				height: 24px;
+				cursor: pointer;
+                border-radius: 4px;
+			}
+            #saveChanges
+            {
+                float:right; 
+
+            }
+
+		</style>
+		<script language="JavaScript" type="text/JavaScript">
+        //keep track of JSObject.data.games.game array and allow the user to iterate through the games that occured in the same day 
+        var gameNum = 0; 
+        // return code values from requests
+		const ISFINISHED = 4;
+		const ISOK = 200;
+        
+        //allowable text for the textboxes 
+        var allowableText = "ABCDEFGHIJKLMNOPQRSTUVWXYZ& ";
+        // for test purposes, we need a global variable to indicate
+		// the current set of allowable characters or numbers
+		var filterSet = "";
+        var JSObject = " ";
+        
+        //filter the textboxes so the user can only input alphabet characters, & and spaces 
+        function filterText(ref) 
+        {
+			// choose the value of filterSet based
+			// on the text box that sent the character
+			if (ref.id === "homeTeamName" || ref.id === "awayTeamName" || ref.id === "winningPitch" || ref.id === "losingPitch" || ref.id === "venue") 
+            {
+				filterSet = allowableText;
+			}
+			// etc.
+							
+			// Chrome, Edge and Safari use returnValue
+			if (window.event.keyCode === 13) {
+				alert("You pressed the enter key");
+			}
+			else if (!nCharOK(window.event.keyCode)) {
+				window.event.returnValue = null;
+			}
+		}
+
+		//filter the currently entered character to see that it is part of the acceptable character set
+        //if the alphabet character is lowercase, then uppercase is 
+		function nCharOK(c) {
+			var ch = (String.fromCharCode(c));
+			ch = ch.toUpperCase();
+
+			// if the current character is not found in the set of all numbers
+			// set the flag variable to fail
+			if (filterSet.indexOf(ch) !== -1) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+        
+        //create the dropdown options for the user to be able to select the date they want to retrieve the baseball game data from 
+        function dropdownPopulate()
+            {
+                var yearArray = ["2015", "2016", "2017"];
+                var monthArray = ["01","02","03","04","05","06","07","08","09","10","11","12"]; 
+                var dayArray = ["01","02","03","04","05","06","07","08","09","10","11","12", "13", "14", "15","16","17", "18","19","20","21","22", "23", "24", "25","26","27","28","29","30","31"]; 
+                
+                //add a new default option at index 0 that will be blank when the user opens the page
+               $gel("year").options[0] = new Option("");
+               $gel("month").options[0] = new Option("");
+               $gel("day").options[0] = new Option("");
+                
+                //fill the dropbox box with the arrays 
+                for (var i = 0; i < yearArray.length; i++)
+                {
+                    $gel("year").options[i+1] = new Option(yearArray[i]);
+                }
+                for (var i = 0; i < monthArray.length; i++)
+                {
+                    $gel("month").options[i+1] = new Option(monthArray[i]);
+                }
+                for (var i = 0; i < dayArray.length; i++)
+                {
+                    $gel("day").options[i+1] = new Option(dayArray[i]);
+                }
+                
+                //change the background color
+                $gel("year").style.backgroundColor = "dimgrey";
+                $gel("month").style.backgroundColor = "dimgrey";
+                $gel("day").style.backgroundColor = "dimgrey";
+
+            }
+        
+        // AJAX asynchronous XMLHttpRequest to get the JSON from the site defined by url and using the
+        function getJSONAsync(url) 
+        {
+			var request = new XMLHttpRequest();
+			request.onreadystatechange = function ()
+            {
+				if (request.readyState === ISFINISHED && request.status === ISOK)
+                {
+					//convert the returned data to a JavaScript object
+				    JSObject = JSON.parse(request.responseText);
+                    
+                    //get the baseball data and fill the textboxes with the necessary data 
+                    gameNum = 0;
+                    getBaseballData();
+				}
+			};
+			// open a connection using the URL
+			request.open("GET", url);
+			// send the GET request
+			request.send();
+		}
+
+        //check what date the user has selected and pass it into getBaseballDataAsynch() 
+        function checkSelection(ref)
+        {
+            var id = $gel(ref);
+            var selection = id.options[id.selectedIndex].text;
+            return selection; 
+                
+        }
+            
+        // onload event handler creates the URL for a given year month and day
+        function getBaseballDataAsynch() 
+        {
+                   
+
+			var year = checkSelection("year");
+			var month = checkSelection("month");
+			var day = checkSelection("day");
+
+			// build a URL as required by the MLB site
+			var tempURL = "http://gd2.mlb.com/components/game/mlb/year_" + year + "/month_" + month + "/day_" + day + "/master_scoreboard.json";
+			
+			// get the data for the specified date with an asynchronous call
+			// the result will be seen above in the callBack function
+			getJSONAsync(tempURL);
+
+		}
+        //populate the next game in the array (for that day)
+        function nextGameNum()
+            {
+                gameNum++;
+                //once reached the end of the array, go back to the first game 
+                if(gameNum > JSObject.data.games.game.length-1)
+                {
+                    gameNum = 0;
+                }
+                //retrieve the baseball data each time 
+                getBaseballData();
+
+            }
+        //populate the previosu game in the array (for that day )
+        function previousGameNum()
+            {
+                gameNum--;
+                //iterate backwards through the array until it reaches past 0 and displays last game of the day 
+                if (gameNum < 0 ) 
+                {
+                gameNum = JSObject.data.games.game.length-1;
+                }
+                getBaseballData();
+            }
+        
+        //prints the baseball data for that day, game number, and populates the textboxes 
+        function getBaseballData()
+        {
+            //get the json data
+            var homeTeam = JSObject.data.games.game[gameNum].home_team_name;
+            var awayTeam = JSObject.data.games.game[gameNum].away_team_name;
+            var winfirst = JSObject.data.games.game[gameNum].winning_pitcher.first;
+            var winlast = JSObject.data.games.game[gameNum].winning_pitcher.last;
+            var lostFirst = JSObject.data.games.game[gameNum].losing_pitcher.first;
+            var lostLast = JSObject.data.games.game[gameNum].losing_pitcher.last;
+            var venue = JSObject.data.games.game[gameNum].venue;
+            
+            //populate the textboxes 
+            $gel("homeTeamName").value = homeTeam;
+            $gel("awayTeamName").value = awayTeam;
+            $gel("winningPitch").value = winfirst + " " + winlast;
+            $gel("losingPitch").value = lostFirst + " " + lostLast;
+            $gel("venue").value = venue; 
+            $gel("gameNumber").value = gameNum + 1; 
+            
+        
+        }
+        
+        //short-form for easier coding (less typing)
+        function $gel(id) 
+            {
+				return document.getElementById(id);
+			}
+		</script>
+	</head>
+    <!-- HTML elements attached to javascript event handlers below-->
+	<body onload="dropdownPopulate(); ">
+        <div id="outerWrap">
+        <div id="title"><h1>Major League Baseball Form</h1></div>
+        <div id="dateWrap">
+        <div id="dateTitles">
+            <p>Year</p>
+            <br /><br />
+            <p>Month</p>
+            <br /><br />
+            <p>Day </p>
+            <br /><br />
+        </div>
+        <div id="dateTextboxes">
+        <select id="year" class="DropDown" ></select>
+        <br /><br />
+        <select id="month" class="DropDown"></select>
+        <br /><br />
+        <select id="day" class="DropDown" ></select>
+        </div>
+        </div>
+    <div id="retrieveWrap">
+    <input type="button" id="btnAsynch" class= "BtnButton" value="Retrieve" onclick="getBaseballDataAsynch();"/>
+        <br /><br/>
+    </div>
+    <div id="resultsTitle"><h2>Game Details: </h2></div>
+    <div id="resultsWrap">
+    <div id="resultText">
+        <ul>
+        <li>Game Number</li>
+        <li>Home Team Name</li>
+        <li>Away Team Name</li>
+        <li>Winning Pitch</li>
+        <li>Losing Pitch</li>
+        <li>Venue</li>
+        </ul>
+    </div>
+    <div id="resultTextboxes">
+    <ul>
+    <li><input type="text" id="gameNumber" class="results"/></li>
+    <li><input type="text" id="homeTeamName" class="results" onkeypress="filterText(this);"/></li>
+    <li><input type="text" id="awayTeamName" class="results" onkeypress="filterText(this);"/></li>
+    <li><input type="text" id="winningPitch" class="results" onkeypress="filterText(this);"/></li>
+    <li><input type="text" id="losingPitch" class="results" onkeypress="filterText(this);"/></li>
+    <li><input type="text" id="venue" class="results" onkeypress="filterText(this);"/></li>
+        </ul>
+    </div>
+	<br /><br />
+    <input type="button" id="prevGame" class= "BtnButton" value="Previous Game" onclick="previousGameNum();"/>
+    <input type="button" id="nextGame" class= "BtnButton" value="Next Game" onclick="nextGameNum();"/>
+    <input type="button" id="saveChanges" class= "BtnButton" value="Save Changes"/>
+    </div>
+    </div>
+	</body>
+</html>
